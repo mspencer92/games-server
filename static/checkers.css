@@ -1,0 +1,13 @@
+body {
+    background-color: #AFEEEE;
+}
+
+#board {
+    position: absolute;
+    top: 0px;
+}
+
+#score_card {
+    left: 0px;
+    top: 0px;
+}

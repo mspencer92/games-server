@@ -1,0 +1,33 @@
+body {
+    background-color: #AFEEEE;
+}
+
+body > * {
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+    font-family: sans-serif;
+}
+
+h1 {
+    color: red;
+}
+
+table {
+    border-collapse: collapse;
+
+}
+
+table, td, th {
+    border: solid blue;
+    text-align: center;
+    vertical-align: middle;
+
+    font: bold 40px sans-serif;
+    padding: 15px;
+}
+
+td {
+    height: 50px;
+    width: 50px;
+}

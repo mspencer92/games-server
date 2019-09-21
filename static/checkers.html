@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Checkers</title>
+    <script src="https://code.jquery.com/jquery.min.js"></script>
+    <link href="checkers.css" rel="stylesheet" type="text/css"/>
+    <script src="checkers.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+<div id="score_card">
+    <div style="font-weight: bold; font-size: 18px;">Your Color: <span id="player_color"></span></div>
+    <div style="font-weight: bold; font-size: 18px;">Blue Score: <span id="blue_score"></span></div>
+    <div style="font-weight: bold; font-size: 18px;">Green Score: <span id="green_score"></span></div>
+    <div style="font-weight: bold; font-size: 18px;">Current Turn: <span id="current_turn"></span></div>
+    <label style="font-weight: bold; font-size: 18px;" id="games_label" for="games">Games:</label>
+    <select id="games" name="games">
+    </select>
+</div>
+<canvas id="board"></canvas>
+</body>
+</html>
