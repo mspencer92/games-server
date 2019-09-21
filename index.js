@@ -1,8 +1,8 @@
 const http = require('http');
-const WebSocket = require('ws');
 const url = require('url');
 const fs = require('fs');
 const path = require('path');
+const WebSocket = require('ws');
 
 const mimeType = {
     '.ico': 'image/x-icon',
@@ -11,67 +11,7 @@ const mimeType = {
     '.js': 'text/javascript',
 };
 
-const server = http.createServer(function (req, res) {
-        const parsedUrl = url.parse(req.url);
-        if (path.extname(parsedUrl.pathname) !== "" && path.extname(parsedUrl.pathname) !== ".html") {
-            const ext = path.parse(parsedUrl.pathname).ext;
-            fs.readFile("static/" + parsedUrl.pathname, {encoding: 'utf-8'}, function (err, data) {
-                if (err) {
-                    res.writeHead(404);
-                } else {
-                    res.setHeader('Content-type', mimeType[ext] || 'text/plain');
-                    res.write(data);
-                    res.end(); //end the response
-                }
-            });
-        } else if (parsedUrl.pathname === "/") {
-            fs.readFile("static/index.html", {encoding: 'utf-8'}, function (err, data) {
-                res.writeHead(200, {'Content-Type': 'text/html'});
-                res.write(data);
-                res.end(); //end the response
-            });
-        } else {
-            fs.readFile("static/" + parsedUrl.pathname + ".html", {encoding: 'utf-8'}, function (err, data) {
-                if (err) {
-                    res.writeHead(404);
-                } else {
-                    res.writeHead(200, {'Content-Type': 'text/html'});
-                    res.write(data);
-                    res.end();
-                }
-            });
-        }
-    }
-);
-const wsCheckers = new WebSocket.Server({noServer: true});
-const wsTicTacToe = new WebSocket.Server({noServer: true});
-
 let checkerGames = [];
-let checkerBoardPieces = [{"column": 2, "row": 1, "color": "BLUE", "king": false},
-    {"column": 4, "row": 1, "color": "BLUE", "king": false},
-    {"column": 6, "row": 1, "color": "BLUE", "king": false},
-    {"column": 8, "row": 1, "color": "BLUE", "king": false},
-    {"column": 1, "row": 2, "color": "BLUE", "king": false},
-    {"column": 3, "row": 2, "color": "BLUE", "king": false},
-    {"column": 5, "row": 2, "color": "BLUE", "king": false},
-    {"column": 7, "row": 2, "color": "BLUE", "king": false},
-    {"column": 2, "row": 3, "color": "BLUE", "king": false},
-    {"column": 4, "row": 3, "color": "BLUE", "king": false},
-    {"column": 6, "row": 3, "color": "BLUE", "king": false},
-    {"column": 8, "row": 3, "color": "BLUE", "king": false},
-    {"column": 1, "row": 6, "color": "GREEN", "king": false},
-    {"column": 3, "row": 6, "color": "GREEN", "king": false},
-    {"column": 5, "row": 6, "color": "GREEN", "king": false},
-    {"column": 7, "row": 6, "color": "GREEN", "king": false},
-    {"column": 2, "row": 7, "color": "GREEN", "king": false},
-    {"column": 4, "row": 7, "color": "GREEN", "king": false},
-    {"column": 6, "row": 7, "color": "GREEN", "king": false},
-    {"column": 8, "row": 7, "color": "GREEN", "king": false},
-    {"column": 1, "row": 8, "color": "GREEN", "king": false},
-    {"column": 3, "row": 8, "color": "GREEN", "king": false},
-    {"column": 5, "row": 8, "color": "GREEN", "king": false},
-    {"column": 7, "row": 8, "color": "GREEN", "king": false}];
-
 let ticTacToeGames = [];
 
 function getTicTacToeGame(gameId) {
@@ -94,6 +34,56 @@ function getCheckersGame(gameId) {
     return ret ? ret : null;
 }
 
+const server = http.createServer(function (req, res) {
+        const parsedUrl = url.parse(req.url);
+        if (path.extname(parsedUrl.pathname) !== "" && path.extname(parsedUrl.pathname) !== ".html") {
+            const ext = path.parse(parsedUrl.pathname).ext;
+            fs.readFile("static/" + parsedUrl.pathname, function (err, data) {
+                if (err) {
+                    res.writeHead(404);
+                } else {
+                    res.setHeader('Content-type', mimeType[ext] || 'text/plain');
+                    res.write(data);
+                    res.end(); //end the response
+                }
+            });
+        } else if (parsedUrl.pathname === "/") {
+            fs.readFile("static/index.html", function (err, data) {
+                res.writeHead(200, {'Content-Type': 'text/html'});
+                res.write(data);
+                res.end(); //end the response
+            });
+        } else {
+            fs.readFile("static/" + parsedUrl.pathname + ".html", {encoding: 'utf-8'}, function (err, data) {
+                if (err) {
+                    res.writeHead(404);
+                } else {
+                    res.writeHead(200, {'Content-Type': 'text/html'});
+                    res.write(data);
+                    res.end();
+                }
+            });
+        }
+    }
+);
+
+server.on('upgrade', function upgrade(request, socket, head) {
+    const pathname = url.parse(request.url).pathname;
+
+    if (pathname.startsWith('/websocket/checkers')) {
+        wsCheckers.handleUpgrade(request, socket, head, function done(ws) {
+            wsCheckers.emit('connection', ws);
+        });
+    } else if (pathname.startsWith('/websocket/tictactoe')) {
+        wsTicTacToe.handleUpgrade(request, socket, head, function done(ws) {
+            wsTicTacToe.emit('connection', ws);
+        });
+    } else {
+        socket.destroy();
+    }
+});
+
+const wsCheckers = new WebSocket.Server({noServer: true});
 
 wsCheckers.on('connection', function connection(ws) {
     ws.on('message', function message(message) {
@@ -104,9 +94,38 @@ wsCheckers.on('connection', function connection(ws) {
                 ws.gameId = parseInt(data[1]["gameId"]);
                 if (getCheckersGame(ws.gameId) === null) {
                     checkerGames.push({
-                        "gameId": ws.gameId, "boardPieces": checkerBoardPieces, "playerOne": null, "playerTwo": null,
-                        "currentTurn": "BLUE", "blueScore": 0,
-                        "greenScore": 0, "blueMoveAgain": null, "greenMoveAgain": null
+                        "gameId": ws.gameId,
+                        "boardPieces": [{"column": 2, "row": 1, "color": "BLUE", "king": false},
+                            {"column": 4, "row": 1, "color": "BLUE", "king": false},
+                            {"column": 6, "row": 1, "color": "BLUE", "king": false},
+                            {"column": 8, "row": 1, "color": "BLUE", "king": false},
+                            {"column": 1, "row": 2, "color": "BLUE", "king": false},
+                            {"column": 3, "row": 2, "color": "BLUE", "king": false},
+                            {"column": 5, "row": 2, "color": "BLUE", "king": false},
+                            {"column": 7, "row": 2, "color": "BLUE", "king": false},
+                            {"column": 2, "row": 3, "color": "BLUE", "king": false},
+                            {"column": 4, "row": 3, "color": "BLUE", "king": false},
+                            {"column": 6, "row": 3, "color": "BLUE", "king": false},
+                            {"column": 8, "row": 3, "color": "BLUE", "king": false},
+                            {"column": 1, "row": 6, "color": "GREEN", "king": false},
+                            {"column": 3, "row": 6, "color": "GREEN", "king": false},
+                            {"column": 5, "row": 6, "color": "GREEN", "king": false},
+                            {"column": 7, "row": 6, "color": "GREEN", "king": false},
+                            {"column": 2, "row": 7, "color": "GREEN", "king": false},
+                            {"column": 4, "row": 7, "color": "GREEN", "king": false},
+                            {"column": 6, "row": 7, "color": "GREEN", "king": false},
+                            {"column": 8, "row": 7, "color": "GREEN", "king": false},
+                            {"column": 1, "row": 8, "color": "GREEN", "king": false},
+                            {"column": 3, "row": 8, "color": "GREEN", "king": false},
+                            {"column": 5, "row": 8, "color": "GREEN", "king": false},
+                            {"column": 7, "row": 8, "color": "GREEN", "king": false}],
+                        "playerOne": null,
+                        "playerTwo": null,
+                        "currentTurn": "BLUE",
+                        "blueScore": 0,
+                        "greenScore": 0,
+                        "blueMoveAgain": null,
+                        "greenMoveAgain": null
                     });
                 }
                 if (getCheckersGame(ws.gameId)["playerOne"] === null) {
@@ -211,6 +230,8 @@ wsCheckers.on('connection', function connection(ws) {
     })
 });
 
+const wsTicTacToe = new WebSocket.Server({noServer: true});
+
 wsTicTacToe.on('connection', function connection(ws) {
     ws.on('message', function message(message) {
         let data = JSON.parse(message);
@@ -295,7 +316,6 @@ wsTicTacToe.on('connection', function connection(ws) {
                             client.send(JSON.stringify(["reset"]));
                             client.send(JSON.stringify(["selections", getTicTacToeGame(ws.gameId)["selections"]]));
                             client.send(JSON.stringify(["currentTurn", getTicTacToeGame(ws.gameId)["currentTurn"]]));
-
                         }
                     }
                 });
@@ -316,21 +336,6 @@ wsTicTacToe.on('connection', function connection(ws) {
             }
         }
     });
-});
-server.on('upgrade', function upgrade(request, socket, head) {
-    const pathname = url.parse(request.url).pathname;
-
-    if (pathname.startsWith('/websocket/checkers')) {
-        wsCheckers.handleUpgrade(request, socket, head, function done(ws) {
-            wsCheckers.emit('connection', ws);
-        });
-    } else if (pathname.startsWith('/websocket/tictactoe')) {
-        wsTicTacToe.handleUpgrade(request, socket, head, function done(ws) {
-            wsTicTacToe.emit('connection', ws);
-        });
-    } else {
-        socket.destroy();
-    }
 });
 
 server.listen(process.env.PORT || 5000);
